@@ -1,12 +1,7 @@
-# SecurityX Study (private)
+# SecurityX Study
 
-CompTIA SecurityX (CAS-005) quiz. This repository is **private**.
+CompTIA SecurityX (CAS-005) quiz.
 
-## Open it
-Open `index.html` in a browser, or use a local static server.
+**Play:** https://orlandojl80.github.io/SecurityX_Study/
 
-## Share with a few people
-GitHub → this repo → **Settings** → **Collaborators** → **Add people**.
-They need a GitHub account. They cannot see it until they accept the invite.
-
-Do not turn on GitHub Pages if you want it to stay invite-only on a free plan.
+Open the site, enter the study PIN, and go. No GitHub account needed.
