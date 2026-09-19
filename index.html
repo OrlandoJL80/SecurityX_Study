@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="SecurityX Study" />
+  <meta name="theme-color" content="#0b1f3a" />
+  <title>SecurityX CAS-005 Study</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <noscript><p style="padding:16px">This study deck needs JavaScript enabled.</p></noscript>
+  <header class="app-header">
+    <h1>CompTIA SecurityX · CAS-005</h1>
+    <p>Private study deck · 482 practice items</p>
+  </header>
+
+  <main class="wrap">
+    <section id="gate" class="card pin">
+      <div class="kicker">Study group access</div>
+      <h2>Enter the study PIN</h2>
+      <p class="muted">This deck is for a closed study group. Do not post the link or question text on a public site.</p>
+      <input id="pin" type="password" inputmode="text" autocomplete="off" autocapitalize="off"
+             autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Study PIN"
+             placeholder="Study PIN" />
+      <p id="pin-msg" class="muted"></p>
+      <button type="button" onclick="tryPin()">Open study deck</button>
+    </section>
+
+    <section id="home" class="hidden">
+      <div class="card">
+        <div class="kicker">Study modes</div>
+        <h2>Choose a drill</h2>
+        <p class="muted">One question at a time. Submit before the key is shown. Items you get right three times in a row leave active rotation. The 90-question exam prefers items you have missed twice or more.</p>
+        <p class="statline">Mastered (3 in a row): <b id="mastered-count">0</b> · Weak (missed 2+): <b id="weak-count">0</b></p>
+        <div class="grid" style="margin-top:12px">
+          <button type="button" class="gold" onclick="startExam()">90-question practice exam</button>
+          <button type="button" class="secondary" onclick="startAll()">Active rotation</button>
+          <button type="button" class="secondary" onclick="startMissed()">Missed only (<span id="missed-count">0</span>)</button>
+          <button type="button" class="secondary" onclick="resetProgress()">Reset my progress</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="kicker">Domains</div>
+        <div class="grid" id="domain-grid"></div>
+      </div>
+      <div class="card notice">
+        Share by sending this whole folder (or a private host link) plus the PIN in <code>app.js</code>
+        (constant <code>PIN</code>, default <code>CAS005</code>). On iPhone: open in Safari → Share → Add to Home Screen.
+        Keep the deck off public search engines. The items come from a licensed practice bank, not CompTIA official exam content.
+      </div>
+    </section>
+
+    <section id="quiz" class="hidden">
+      <div class="card">
+        <div class="meta">
+          <span id="quiz-title">Quiz</span>
+          <span id="q-progress"></span>
+        </div>
+        <div class="progress"><span id="bar"></span></div>
+        <div class="meta"><span id="q-domain"></span><span id="tags"></span></div>
+        <div class="why" id="why"></div>
+        <div class="stem" id="stem"></div>
+        <div class="think" id="think"></div>
+        <div class="glossary hidden" id="glossary"></div>
+        <div id="exhibits"></div>
+        <div id="choices"></div>
+        <div id="explain" class="explain hidden"></div>
+        <div class="grid two" style="margin-top:12px">
+          <button type="button" id="btn-submit" onclick="submitAnswer()">Submit</button>
+          <button type="button" id="btn-next" class="gold hidden" onclick="nextQuestion()">Next</button>
+        </div>
+        <button type="button" class="secondary" style="margin-top:8px" onclick="goHome()">End session</button>
+      </div>
+    </section>
+
+    <section id="score" class="hidden">
+      <div class="card">
+        <div class="kicker">Session complete</div>
+        <h2 id="score-summary"></h2>
+        <div id="score-rows"></div>
+        <div class="grid" style="margin-top:16px">
+          <button type="button" class="gold" onclick="goHome()">Back to menu</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="questions-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
