@@ -159,8 +159,6 @@ button:disabled { opacity: 0.45; }
 
 .hidden { display: none !important; }
 
-/* Visible keyboard focus. Safari only paints :focus-visible on tab, so
-   this does not leave a ring after a tap. */
 button:focus-visible, input:focus-visible, a:focus-visible {
   outline: 3px solid var(--steel);
   outline-offset: 2px;
@@ -188,7 +186,6 @@ button:focus-visible, input:focus-visible, a:focus-visible {
   .progress > span { transition: width 0.25s ease; }
 }
 
-/* Keep the action buttons clear of the iPhone home indicator. */
 .wrap { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
 
 .why {
@@ -226,3 +223,36 @@ button:focus-visible, input:focus-visible, a:focus-visible {
   line-height: 1.4;
 }
 .statline { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+.mode-block { margin-top: 12px; }
+.mode-stack { display: grid; gap: 8px; margin-top: 8px; }
+.domain-card {
+  background: var(--navy-2);
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px;
+}
+.domain-head { font-weight: 700; font-size: 16px; }
+.domain-head small { display: block; font-weight: 500; color: #c9d6e5; margin-top: 4px; }
+.domain-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 10px 0 4px;
+  text-align: center;
+}
+.domain-stats b { display: block; font-size: 15px; }
+.domain-stats span { display: block; font-size: 10px; color: #c9d6e5; letter-spacing: 0.04em; text-transform: uppercase; }
+.bars {
+  display: flex;
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: #0b1f3a;
+  margin-top: 8px;
+}
+.bar-seg.ok { background: #3d9b5f; }
+.bar-seg.weak { background: #c4a35a; }
+.bar-seg.rest { background: #2a4a6e; }
+.delta { display: block; font-weight: 500; color: var(--muted); margin-top: 2px; }
+.domain-card button { font-size: 14px; }
