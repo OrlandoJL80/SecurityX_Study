@@ -1,5 +1,8 @@
 const SKIN_MUTE_KEY = "sx_mute";
 let skinAudio = null;
+let radarWeak = null;
+let radarAngle = 0;
+let radarRaf = 0;
 
 function skinMuted() {
   const v = rawGet("localStorage", SKIN_MUTE_KEY);
@@ -110,11 +113,105 @@ function paintHeaderShift() {
   if (live) live.textContent = $("quiz") && !$("quiz").classList.contains("hidden") ? "ON DUTY" : "DECK ARMED";
 }
 
+function reduceMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function nodePos(d, cx, cy, r) {
+  const ang = (-Math.PI / 2) + (d - 1) * (Math.PI / 2);
+  return { x: cx + Math.cos(ang) * r * 0.72, y: cy + Math.sin(ang) * r * 0.72, ang };
+}
+
+function drawRadarFrame(ctx, w, h, angle) {
+  const cx = w * 0.5;
+  const cy = h * 0.38;
+  const rad = Math.min(w, h) * 0.42;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "rgba(196,163,90,0.18)";
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad * (i / 4), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(cx - rad, cy); ctx.lineTo(cx + rad, cy);
+  ctx.moveTo(cx, cy - rad); ctx.lineTo(cx, cy + rad);
+  ctx.stroke();
+
+  const sweep = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+  sweep.addColorStop(0, "rgba(196,163,90,0.00)");
+  sweep.addColorStop(1, "rgba(196,163,90,0.00)");
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  const grd = ctx.createLinearGradient(0, 0, rad, 0);
+  grd.addColorStop(0, "rgba(196,163,90,0.00)");
+  grd.addColorStop(0.75, "rgba(196,163,90,0.05)");
+  grd.addColorStop(1, "rgba(196,163,90,0.28)");
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.arc(0, 0, rad, -0.55, 0.08);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(196,163,90,0.55)";
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(rad, 0);
+  ctx.stroke();
+  ctx.restore();
+
+  [1, 2, 3, 4].forEach((d) => {
+    const p = nodePos(d, cx, cy, rad);
+    const weak = radarWeak === d;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, weak ? 7 : 4, 0, Math.PI * 2);
+    ctx.fillStyle = weak ? "rgba(196,163,90,0.95)" : "rgba(61,155,95,0.55)";
+    ctx.fill();
+    if (weak) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(196,163,90,0.45)";
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(201,214,229,0.55)";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("D" + d, p.x, p.y + 20);
+  });
+}
+
+function startRadar() {
+  const canvas = $("radar-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const fit = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  fit();
+  window.addEventListener("resize", fit);
+  const loop = (ts) => {
+    if (!reduceMotion()) radarAngle = (ts / 12000) * Math.PI * 2;
+    drawRadarFrame(ctx, window.innerWidth, window.innerHeight, radarAngle);
+    radarRaf = requestAnimationFrame(loop);
+  };
+  if (reduceMotion()) {
+    drawRadarFrame(ctx, window.innerWidth, window.innerHeight, -Math.PI / 3);
+  } else {
+    radarRaf = requestAnimationFrame(loop);
+  }
+}
+
 function skinAfterHome() {
   paintHeaderShift();
   const roll = state.data ? domainRollup() : null;
   if (!roll) return;
   const weak = weakestDomain(roll);
+  radarWeak = weak;
   document.querySelectorAll(".domain-card").forEach((card, i) => {
     const d = i + 1;
     card.classList.toggle("is-weakest", d === weak);
@@ -203,6 +300,7 @@ function toastResumeIfAny() {
     startSkinClock();
     paintHeaderShift();
     document.body.classList.add("ops-skin");
+    startRadar();
     if (typeof unlocked === "function" && unlocked()) toastResumeIfAny();
   };
   wait();
