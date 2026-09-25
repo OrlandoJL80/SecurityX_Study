@@ -5,17 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="SecurityX Study" />
-  <meta name="theme-color" content="#0b1f3a" />
+  <meta name="theme-color" content="#071526" />
   <title>SecurityX CAS-005 Study</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="skin.css" />
 </head>
 <body>
   <noscript><p style="padding:16px">This study deck needs JavaScript enabled.</p></noscript>
   <header class="app-header">
-    <h1>CompTIA SecurityX · CAS-005</h1>
-    <p>Private study deck · 482 practice items</p>
+    <div class="ops-row">
+      <div>
+        <h1>CompTIA SecurityX · CAS-005</h1>
+        <p>Private study deck · 482 practice items</p>
+      </div>
+      <div class="ops-status">
+        <span class="ops-dot" aria-hidden="true"></span>
+        <span id="ops-live">DECK ARMED</span>
+        <span id="ops-clock">--:--</span>
+        <button type="button" id="btn-mute" class="mute" onclick="toggleMute()" aria-pressed="true">Sound off</button>
+      </div>
+    </div>
   </header>
-
+  <div id="ops-toast" class="ops-toast hidden" role="status"></div>
   <main class="wrap">
     <section id="gate" class="card pin">
       <div class="kicker">Study group access</div>
@@ -27,7 +38,6 @@
       <p id="pin-msg" class="muted"></p>
       <button type="button" onclick="tryPin()">Open study deck</button>
     </section>
-
     <section id="home" class="hidden">
       <div class="card">
         <div class="kicker">Study modes</div>
@@ -35,18 +45,9 @@
         <p class="muted">One question at a time. Submit before the key is shown. Items you get right three times in a row leave active rotation. The 90-question exam prefers items you have missed twice or more.</p>
         <p class="statline">Mastered (3 in a row): <b id="mastered-count">0</b> · Weak (missed 2+): <b id="weak-count">0</b> · Open misses: <b id="missed-count">0</b></p>
         <p class="muted">A saved set stays on this device until you finish it or start a new one in that mode.</p>
-        <div class="mode-block">
-          <div class="kicker">Exam</div>
-          <div id="exam-actions"></div>
-        </div>
-        <div class="mode-block">
-          <div class="kicker">Active rotation</div>
-          <div id="active-actions"></div>
-        </div>
-        <div class="mode-block">
-          <div class="kicker">Missed only</div>
-          <div id="missed-actions"></div>
-        </div>
+        <div class="mode-block"><div class="kicker">Exam</div><div id="exam-actions"></div></div>
+        <div class="mode-block"><div class="kicker">Active rotation</div><div id="active-actions"></div></div>
+        <div class="mode-block"><div class="kicker">Missed only</div><div id="missed-actions"></div></div>
         <div class="grid" style="margin-top:12px">
           <button type="button" class="secondary" onclick="resetProgress()">Reset my progress</button>
         </div>
@@ -61,15 +62,12 @@
         Keep the deck off public search engines. The items come from a licensed practice bank, not CompTIA official exam content.
       </div>
     </section>
-
     <section id="quiz" class="hidden">
       <div class="card">
-        <div class="meta">
-          <span id="quiz-title">Quiz</span>
-          <span id="q-progress"></span>
-        </div>
+        <div class="meta"><span id="quiz-title">Quiz</span><span id="q-progress"></span></div>
         <div class="progress"><span id="bar"></span></div>
         <div class="meta"><span id="q-domain"></span><span id="tags"></span></div>
+        <div id="streak-chip" class="streak-chip">Streak</div>
         <div class="why" id="why"></div>
         <div class="stem" id="stem"></div>
         <div class="think" id="think"></div>
@@ -84,14 +82,14 @@
         <button type="button" class="secondary" style="margin-top:8px" onclick="saveAndQuit()">Save and quit</button>
       </div>
     </section>
-
     <section id="score" class="hidden">
       <div class="card">
-        <div class="kicker">Session complete</div>
+        <div class="kicker">After action</div>
         <h2 id="score-summary"></h2>
         <div id="score-rows"></div>
+        <div id="score-next" class="score-next"></div>
         <div class="grid" style="margin-top:16px">
-          <button type="button" class="gold" onclick="goHome()">Back to menu</button>
+          <button type="button" class="secondary" onclick="goHome()">Back to menu</button>
         </div>
       </div>
     </section>
@@ -100,5 +98,6 @@
   <script src="glossary.js"></script>
   <script src="app-a.js"></script>
   <script src="app-b.js"></script>
+  <script src="skin.js"></script>
 </body>
 </html>
