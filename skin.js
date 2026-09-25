@@ -138,10 +138,6 @@ function drawRadarFrame(ctx, w, h, angle) {
   ctx.moveTo(cx - rad, cy); ctx.lineTo(cx + rad, cy);
   ctx.moveTo(cx, cy - rad); ctx.lineTo(cx, cy + rad);
   ctx.stroke();
-
-  const sweep = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-  sweep.addColorStop(0, "rgba(196,163,90,0.00)");
-  sweep.addColorStop(1, "rgba(196,163,90,0.00)");
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(angle);
@@ -161,7 +157,6 @@ function drawRadarFrame(ctx, w, h, angle) {
   ctx.lineTo(rad, 0);
   ctx.stroke();
   ctx.restore();
-
   [1, 2, 3, 4].forEach((d) => {
     const p = nodePos(d, cx, cy, rad);
     const weak = radarWeak === d;
@@ -199,15 +194,106 @@ function startRadar() {
     drawRadarFrame(ctx, window.innerWidth, window.innerHeight, radarAngle);
     radarRaf = requestAnimationFrame(loop);
   };
-  if (reduceMotion()) {
-    drawRadarFrame(ctx, window.innerWidth, window.innerHeight, -Math.PI / 3);
-  } else {
-    radarRaf = requestAnimationFrame(loop);
+  if (reduceMotion()) drawRadarFrame(ctx, window.innerWidth, window.innerHeight, -Math.PI / 3);
+  else radarRaf = requestAnimationFrame(loop);
+}
+
+function reassureLine(q, correct) {
+  if (!q) return "";
+  if (q.pbq) return "Reviewed. Lab items are not letter-scored.";
+  const h = rec(q.id);
+  if (!correct) return "Miss logged. It stays in the weak pool until you can explain the control.";
+  if ((h.wrong || 0) > 0 && (h.streak || 0) < MASTER_STREAK) {
+    return "Recovery logged. Miss count stays until the streak holds.";
   }
+  if ((h.streak || 0) >= MASTER_STREAK) return "Out of rotation. You can still meet it on an exam.";
+  if ((h.streak || 0) === MASTER_STREAK - 1) return "One more clean hit and it leaves active rotation.";
+  if ((h.seen || 0) <= 1) return "Logged. This item is in your rotation.";
+  return "Logged. Streak " + (h.streak || 0) + " of " + MASTER_STREAK + ".";
+}
+
+function paintReassureExplain() {
+  const last = state.results[state.results.length - 1];
+  const q = currentQ();
+  if (!last || !q) return;
+  const box = $("explain");
+  if (!box) return;
+  let note = box.querySelector(".reassure");
+  if (!note) {
+    note = document.createElement("p");
+    note.className = "reassure";
+    box.appendChild(note);
+  }
+  note.textContent = reassureLine(q, last.correct);
+}
+
+function paintHomeBoard() {
+  const host = $("home");
+  if (!host || !state.data) return;
+  const card = host.querySelector(".card");
+  if (!card) return;
+  let line = $("board-line");
+  if (!line) {
+    line = document.createElement("p");
+    line.id = "board-line";
+    line.className = "board-line";
+    const stats = card.querySelector(".statline");
+    if (stats && stats.parentNode) stats.insertAdjacentElement("afterend", line);
+    else card.appendChild(line);
+  }
+  const st = stats();
+  let seen = 0;
+  state.data.questions.forEach((q) => { if ((rec(q.id).seen || 0) > 0) seen += 1; });
+  const roll = domainRollup();
+  const w = weakestDomain(roll);
+  let extra = "";
+  if (w) {
+    const r = roll[w];
+    const life = r.attempts >= 5 ? Math.round((r.correct / r.attempts) * 100) : null;
+    const last = r.last20n ? Math.round((r.last20ok / r.last20n) * 100) : null;
+    if (life != null && last != null && last !== life) {
+      extra = last > life
+        ? ` Last ${r.last20n} in Domain ${w} running hotter than lifetime (${last}% vs ${life}%).`
+        : ` Last ${r.last20n} in Domain ${w} cooler than lifetime (${last}% vs ${life}%).`;
+    }
+  }
+  line.textContent = `Board: ${seen} of ${state.data.questions.length} seen · ${st.mastered} left rotation · ${st.missed} open misses.${extra}`;
+}
+
+function paintScoreBoard() {
+  const box = $("score-next");
+  if (!box) return;
+  const snap = state.startSnap || {};
+  const now = domainRollup();
+  let mGain = 0;
+  [1, 2, 3, 4].forEach((d) => {
+    const before = (snap[d] && snap[d].mastered) || 0;
+    mGain += Math.max(0, (now[d].mastered || 0) - before);
+  });
+  let note = box.querySelector(".board-line");
+  if (!note) {
+    note = document.createElement("p");
+    note.className = "board-line";
+    box.insertBefore(note, box.firstChild);
+  }
+  note.textContent = mGain
+    ? `+${mGain} left rotation this set. The board is quieter.`
+    : "No new items left rotation this set. Misses are parked. Come back to them.";
+  const recm = recommendNext();
+  let btnWrap = box.querySelector(".rec-wrap");
+  if (!btnWrap) {
+    btnWrap = document.createElement("div");
+    btnWrap.className = "rec-wrap";
+    box.appendChild(btnWrap);
+  }
+  btnWrap.innerHTML = recm
+    ? `<div class="kicker">Recommended next</div><button type="button" class="gold" onclick="${recm.fn}">${escapeHtml(recm.label)}</button>`
+    : "";
 }
 
 function skinAfterHome() {
   paintHeaderShift();
+  paintHomeBoard();
   const roll = state.data ? domainRollup() : null;
   if (!roll) return;
   const weak = weakestDomain(roll);
@@ -250,12 +336,7 @@ function skinStreakChip(q) {
 }
 
 function skinAfterScore() {
-  const box = $("score-next");
-  if (!box) return;
-  const recm = recommendNext();
-  if (!recm) { box.innerHTML = ""; return; }
-  box.innerHTML = `<div class="kicker">Recommended next</div>
-    <button type="button" class="gold" onclick="${recm.fn}">${escapeHtml(recm.label)}</button>`;
+  paintScoreBoard();
 }
 
 function toastResumeIfAny() {
@@ -292,6 +373,7 @@ function toastResumeIfAny() {
       if (!before && state.revealed) {
         const last = state.results[state.results.length - 1];
         tick(last && last.correct ? "ok" : "bad");
+        paintReassureExplain();
       }
     };
     const _go = goHome;
