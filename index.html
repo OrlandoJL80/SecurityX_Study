@@ -33,11 +33,21 @@
         <div class="kicker">Study modes</div>
         <h2>Choose a drill</h2>
         <p class="muted">One question at a time. Submit before the key is shown. Items you get right three times in a row leave active rotation. The 90-question exam prefers items you have missed twice or more.</p>
-        <p class="statline">Mastered (3 in a row): <b id="mastered-count">0</b> · Weak (missed 2+): <b id="weak-count">0</b></p>
+        <p class="statline">Mastered (3 in a row): <b id="mastered-count">0</b> · Weak (missed 2+): <b id="weak-count">0</b> · Open misses: <b id="missed-count">0</b></p>
+        <p class="muted">A saved set stays on this device until you finish it or start a new one in that mode.</p>
+        <div class="mode-block">
+          <div class="kicker">Exam</div>
+          <div id="exam-actions"></div>
+        </div>
+        <div class="mode-block">
+          <div class="kicker">Active rotation</div>
+          <div id="active-actions"></div>
+        </div>
+        <div class="mode-block">
+          <div class="kicker">Missed only</div>
+          <div id="missed-actions"></div>
+        </div>
         <div class="grid" style="margin-top:12px">
-          <button type="button" class="gold" onclick="startExam()">90-question practice exam</button>
-          <button type="button" class="secondary" onclick="startAll()">Active rotation</button>
-          <button type="button" class="secondary" onclick="startMissed()">Missed only (<span id="missed-count">0</span>)</button>
           <button type="button" class="secondary" onclick="resetProgress()">Reset my progress</button>
         </div>
       </div>
@@ -71,7 +81,7 @@
           <button type="button" id="btn-submit" onclick="submitAnswer()">Submit</button>
           <button type="button" id="btn-next" class="gold hidden" onclick="nextQuestion()">Next</button>
         </div>
-        <button type="button" class="secondary" style="margin-top:8px" onclick="goHome()">End session</button>
+        <button type="button" class="secondary" style="margin-top:8px" onclick="saveAndQuit()">Save and quit</button>
       </div>
     </section>
 
