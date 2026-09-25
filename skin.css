@@ -1,11 +1,29 @@
 body.ops-skin {
+  background: #071526;
+}
+#radar-floor {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background:
-    radial-gradient(1200px 400px at 50% -80px, rgba(196,163,90,0.08), transparent 55%),
-    linear-gradient(180deg, #071526 0%, #0b1f3a 28%, #e8edf3 28%);
+    radial-gradient(ellipse at 50% 18%, rgba(196,163,90,0.07), transparent 42%),
+    #071526;
+}
+#radar-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.55;
+}
+.app-header, .ops-toast, .wrap {
+  position: relative;
+  z-index: 2;
 }
 .app-header {
-  background: #071526;
+  background: rgba(7, 21, 38, 0.92);
   border-bottom: 3px solid var(--gold);
+  backdrop-filter: blur(8px);
 }
 .ops-row {
   display: flex;
@@ -104,4 +122,6 @@ button.mute {
 .streak-chip.warn { background: #fdecea; color: #7f1d1d; }
 .score-next { margin-top: 16px; }
 .score-next .kicker { margin-bottom: 8px; }
-#home .card { background: rgba(255,255,255,0.96); }
+#home .card, #gate.card, #quiz .card, #score .card {
+  background: rgba(255,255,255,0.94);
+}
