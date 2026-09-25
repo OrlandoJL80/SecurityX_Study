@@ -125,3 +125,16 @@ button.mute {
 #home .card, #gate.card, #quiz .card, #score .card {
   background: rgba(255,255,255,0.94);
 }
+.board-line {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #1f4e79;
+  font-weight: 600;
+}
+.explain .reassure {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #3d4f63;
+  font-style: italic;
+}
