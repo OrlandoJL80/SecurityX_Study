@@ -1,10 +1,7 @@
 .exp-stack { margin-top: 10px; }
 .exp-body { margin-bottom: 8px; }
 .connect-line {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   font-size: 14px;
-}
-.picture-it {
-  margin: 8px 0 0;
-  color: #3d4f63;
+  line-height: 1.45;
 }
