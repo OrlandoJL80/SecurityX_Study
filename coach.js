@@ -6,7 +6,7 @@ const CONNECT_FIX = {
   414: 'The question mentions "legal team". The only answer that addresses counsel is consent before training on customer data. In law you do not take someone\'s data without permission.'
 };
 
-const HINTS = ["legal counsel","legal team","right to be forgotten","age-related","new markets","supply chain","single footprint","layer-7","application layer","customer data","consent","zero trust","least privilege","at rest","in transit","tabletop","compensating control","threat modeling","playbook","globally sourced","reassure","chatbot","security contexts","forward secrecy","split tunnel","code signing","bug bounty","prompt injection","model inversion","secure boot","business impact"];
+const HINTS = ["legal counsel","legal team","right to be forgotten","age-related","new markets","supply chain","single footprint","layer-7","application layer","customer data","consent","zero trust","least privilege","at rest","in transit","tabletop","compensating control","threat modeling","playbook","globally sourced","reassure customers","security contexts","forward secrecy","split tunnel","code signing","bug bounty","prompt injection","model inversion","secure boot","business impact","right to erasure","least privilege","need-to-know"];
 
 function splitExplain(raw) {
   const text = String(raw || "").replace(/\r/g, "").trim();
@@ -24,9 +24,19 @@ function mentions(stem) {
   const t = String(stem || "");
   const low = t.toLowerCase();
   const out = [];
-  HINTS.forEach((h) => {
-    if (low.indexOf(h) >= 0 && out.indexOf(h) < 0) out.push(h);
+  const push = (s) => {
+    const v = String(s || "").replace(/\s+/g, " ").trim();
+    if (!v || v.length < 3) return;
+    const k = v.toLowerCase();
+    if (out.some((x) => x.toLowerCase() === k)) return;
+    out.push(v);
+  };
+  HINTS.forEach((h) => { if (low.indexOf(h) >= 0) push(h); });
+  (t.match(/"([^"]{3,40})"/g) || []).forEach((m) => push(m.replace(/"/g, "")));
+  (t.match(/\b[A-Z]{2,6}\b/g) || []).forEach((m) => {
+    if (!/^(A|AN|THE|AND|FOR|NOT|YES|NO|OF|TO|IN|OR|BY)$/.test(m)) push(m);
   });
+  (t.match(/\b[A-Za-z][A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\b/g) || []).forEach(push);
   return out.slice(0, 3);
 }
 
@@ -44,18 +54,20 @@ function firstWhy(q) {
   return s.length > 140 ? s.slice(0, 137) + "\u2026" : s;
 }
 
+function mentionHead(ms) {
+  if (ms.length === 1) return 'The question mentions "' + ms[0] + '".';
+  if (ms.length === 2) return 'The question mentions "' + ms[0] + '" and "' + ms[1] + '".';
+  if (ms.length >= 3) return 'The question mentions "' + ms[0] + '", "' + ms[1] + '", and "' + ms[2] + '".';
+  return "The question names a specific job or constraint in the stem.";
+}
+
 function connectLine(q) {
   if (CONNECT_FIX[q.id]) return CONNECT_FIX[q.id];
   if (q.pbq || !q.options) return "Match the exhibit to the job named in the stem.";
   const ms = mentions(q.stem);
   const a = shortAns(q);
   const why = firstWhy(q);
-  let head;
-  if (ms.length === 1) head = 'The question mentions "' + ms[0] + '".';
-  else if (ms.length === 2) head = 'The question mentions "' + ms[0] + '" and "' + ms[1] + '".';
-  else if (ms.length >= 3) head = 'The question mentions "' + ms[0] + '", "' + ms[1] + '", and "' + ms[2] + '".';
-  else head = "Look at the constraints in the stem.";
-  return head + " The only answer that fits is " + a.cut + " (" + a.key + "). " + why;
+  return mentionHead(ms) + " The only answer that fits is " + a.cut + " (" + a.key + "). " + why;
 }
 
 function explainHtml(q) {
