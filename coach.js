@@ -5,66 +5,69 @@ const ANALOGY_FIX = {
 
 const TELL_RULES = [
   { re: /internal legal|legal team|counsel|office of general counsel/i,
-    cue: "internal legal team",
-    why: "The question is asking who owns law and privacy, not which bug is the scariest. Pick the issue counsel must bless." },
-  { re: /consent|lawful basis|privacy (?:team|office|issue)|GDPR|CCPA|customer data/i,
-    cue: "consent / customer data / privacy",
-    why: "Using someone's data to train a model is a legal question first. Engineering bugs stay with security." },
+    cue: "legal team",
+    why: "Legal works in law. Law is about rights and permission, not about patching a bug." },
+  { re: /consent|lawful basis/i,
+    cue: "consent",
+    why: "You cannot take someone's data and use it unless they agreed. That agreement is consent. That is why legal owns this option." },
+  { re: /privacy (?:team|office|issue)|GDPR|CCPA/i,
+    cue: "privacy",
+    why: "Privacy rules decide whether customer data may be collected, kept, or reused." },
   { re: /single footprint|one box|one appliance|collapse of multiple|consolidated|unified threat/i,
     cue: "one box / single footprint",
     why: "They want several security jobs on one device, not three separate tools." },
-  { re: /layer[- ]?7|application layer|application-aware|application visibility|inspect(?:ion)? (?:of )?applications/i,
+  { re: /layer[- ]?7|application layer|application-aware|application visibility/i,
     cue: "Layer-7 / application layer",
-    why: "Port filters cannot see the app. The answer has to inspect what the application is doing." },
-  { re: /multiple VPNs|security contexts|virtual systems|separate contexts|tenant isolation/i,
+    why: "A port filter only sees numbers. Layer-7 means the tool must see which application is talking." },
+  { re: /multiple VPNs|security contexts|virtual systems|separate contexts/i,
     cue: "multiple VPNs / separate contexts",
     why: "One device, several isolated tunnels or policy worlds." },
-  { re: /least privilege|need[- ]to[- ]know|minimum (?:necessary|access)/i,
+  { re: /least privilege|need[- ]to[- ]know/i,
     cue: "least privilege",
     why: "Give only the access the job needs, then stop." },
-  { re: /zero trust|never trust|always verify|assume breach/i,
-    cue: "zero trust / always verify",
-    why: "Do not trust the network path. Check user, device, and request each time." },
-  { re: /encryption at rest|data at rest|volume encrypt/i,
+  { re: /zero trust|always verify|assume breach/i,
+    cue: "zero trust",
+    why: "Do not trust the path. Check user, device, and request each time." },
+  { re: /at rest|volume encrypt/i,
     cue: "at rest",
-    why: "Protect stored data, not the wire." },
-  { re: /in transit|data in motion|TLS|IPsec tunnel/i,
+    why: "The data is sitting still. Encrypt the store, not the wire." },
+  { re: /in transit|data in motion/i,
     cue: "in transit",
-    why: "Protect data while it moves." },
-  { re: /RTO|recovery time/i,
+    why: "The data is moving. Protect the path." },
+  { re: /\bRTO\b|recovery time/i,
     cue: "RTO",
     why: "How fast the service must be back. Time, not data." },
-  { re: /RPO|recovery point|how much data/i,
+  { re: /\bRPO\b|recovery point/i,
     cue: "RPO",
     why: "How much data you can afford to lose. Point-in-time, not speed." },
   { re: /tabletop/i,
     cue: "tabletop",
-    why: "Talk through the plan. Nobody touches production." },
+    why: "Talk through the plan. Nobody takes production down." },
   { re: /walk[- ]through/i,
     cue: "walk-through",
-    why: "People review the steps together. Still not a live failover." },
-  { re: /parallel test|parallel processing/i,
+    why: "People review the steps. Still not a live failover." },
+  { re: /parallel test/i,
     cue: "parallel test",
-    why: "Run the backup site beside production. Production stays up." },
+    why: "Backup site runs beside production. Production stays up." },
   { re: /full (?:interruption|failover) test|cutover/i,
-    cue: "full interruption / cutover",
+    cue: "full interruption",
     why: "Production is taken down on purpose to prove the swap." },
-  { re: /SIEM/i,
+  { re: /\bSIEM\b/,
     cue: "SIEM",
-    why: "Collect and correlate logs. It is the library, not the lock." },
-  { re: /SOAR/i,
+    why: "Collects and correlates logs. Library, not lock." },
+  { re: /\bSOAR\b/,
     cue: "SOAR",
     why: "Playbooks that act on alerts without a click every time." },
-  { re: /EDR/i,
+  { re: /\bEDR\b/,
     cue: "EDR",
-    why: "Telemetry and response on the laptop or server itself." },
-  { re: /SASE/i,
+    why: "Watch and respond on the laptop or server itself." },
+  { re: /\bSASE\b/,
     cue: "SASE",
     why: "Cloud-delivered access plus inspection for users anywhere." },
-  { re: /CASB/i,
+  { re: /\bCASB\b/,
     cue: "CASB",
-    why: "Visibility and control between users and cloud apps." },
-  { re: /immutable|WORM|write once/i,
+    why: "Control point between users and cloud apps." },
+  { re: /immutable|\bWORM\b|write once/i,
     cue: "immutable / WORM",
     why: "Once written, nobody can quietly edit the record." },
   { re: /compensat(?:ing|ory) control/i,
@@ -85,21 +88,9 @@ function splitExplain(raw) {
   return { body: body.join("\n\n"), analogy };
 }
 
-function stemBullets(stem) {
-  const t = String(stem || "");
-  const out = [];
-  const re = /(?:^|[\n\u2022]|\s)(?:\u2022|\-|\d{1,2}\.)\s*([^\n\u2022]+)/g;
-  let m;
-  while ((m = re.exec(t))) {
-    const line = m[1].replace(/\s+/g, " ").trim();
-    if (line.length > 12 && line.length < 180) out.push(line);
-  }
-  return out.slice(0, 6);
-}
-
 function collectTells(q) {
   if (Array.isArray(q.tells) && q.tells.length) return q.tells;
-  const hay = (q.stem || "") + "\n" + (q.explanation || "");
+  const hay = (q.stem || "") + "\n" + Object.values(q.options || {}).join("\n") + "\n" + (q.explanation || "");
   const hits = [];
   const seen = new Set();
   TELL_RULES.forEach((rule) => {
@@ -108,15 +99,19 @@ function collectTells(q) {
       hits.push({ cue: rule.cue, why: rule.why });
     }
   });
-  if (hits.length) return hits;
-  const bullets = stemBullets(q.stem);
-  if (bullets.length >= 2) {
-    return bullets.map((b) => ({
-      cue: b,
-      why: "The right answer is the one control that covers this requirement together with the others — not a tool that only covers one bullet."
-    }));
+  return hits;
+}
+
+function teachPair(q) {
+  const stem = q.stem || "";
+  const opts = Object.values(q.options || {}).join(" ");
+  if (/legal team|internal legal|counsel/i.test(stem) && /consent/i.test(opts + stem)) {
+    return "The stem says <b>legal team</b>. Legal works in law. In law you do not take something from a person unless they gave <b>consent</b>. That is why the answer with consent is the one counsel must handle. Prompt injection, DoS, and model poisoning are bugs. Security patches bugs. Legal does not.";
   }
-  return [];
+  if (/single footprint|one box|collapse of multiple/i.test(stem) && /layer[- ]?7|application layer/i.test(stem)) {
+    return "The stem wants <b>several functions in one box</b> and <b>Layer-7</b> inspection. That pair is an NGFW, not a NAT box or a sensor that only watches.";
+  }
+  return "";
 }
 
 function pictureIt(q, parsed) {
@@ -131,19 +126,22 @@ function pictureIt(q, parsed) {
 
 function explainHtml(q) {
   const parsed = splitExplain(q.explanation || "");
-  const tells = collectTells(q);
+  const pair = teachPair(q);
+  const tells = pair ? [] : collectTells(q);
   const pic = pictureIt(q, parsed);
   let html = "";
   if (parsed.body) {
     html += `<div class="exp-body">${escapeHtml(parsed.body).replace(/\n/g, "<br>")}</div>`;
   }
-  if (tells.length) {
-    html += `<div class="look-for"><div class="kicker">Look for in the stem</div><ul>` +
-      tells.map((t) => `<li><b>${escapeHtml(t.cue)}</b> — ${escapeHtml(t.why)}</li>`).join("") +
-      `</ul></div>`;
+  html += `<div class="look-for"><div class="kicker">How the words pick the answer</div>`;
+  if (pair) {
+    html += `<p>${pair}</p>`;
+  } else if (tells.length) {
+    html += "<ul>" + tells.map((t) => `<li><b>${escapeHtml(t.cue)}</b> — ${escapeHtml(t.why)}</li>`).join("") + "</ul>";
   } else {
-    html += `<div class="look-for"><div class="kicker">Look for in the stem</div><p>Match every constraint in the question. Wrong answers usually fit one phrase and miss the rest.</p></div>`;
+    html += "<p>Find the job in the stem (legal, architect, engineer, SOC). Then pick the answer whose words belong to that job. Extra security jargon in the other options is bait.</p>";
   }
+  html += "</div>";
   if (pic) {
     html += `<div class="picture-it"><div class="kicker">Picture it</div><p>${escapeHtml(pic)}</p></div>`;
   }
