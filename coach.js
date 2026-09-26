@@ -24,7 +24,7 @@ function splitExplain(raw) {
 }
 
 function sentences(text) {
-  return String(text || "").replace(/\s+/g, " ").trim().split(/(?<=\\.)\\s+/).filter((s) => s && s.length > 8);
+  return String(text || "").replace(/\s+/g, " ").trim().split(/(?<=[.])\s+/).filter((s) => s && s.length > 8);
 }
 
 function lastAsk(stem) {
