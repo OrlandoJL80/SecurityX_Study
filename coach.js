@@ -3,76 +3,29 @@ const ANALOGY_FIX = {
   414: "Security can patch a chatbot. Legal has to approve using a customer's data to train it."
 };
 
-const TELL_RULES = [
-  { re: /internal legal|legal team|counsel|office of general counsel/i,
-    cue: "legal team",
-    why: "Legal works in law. Law is about rights and permission, not about patching a bug." },
-  { re: /consent|lawful basis/i,
-    cue: "consent",
-    why: "You cannot take someone's data and use it unless they agreed. That agreement is consent. That is why legal owns this option." },
-  { re: /privacy (?:team|office|issue)|GDPR|CCPA/i,
-    cue: "privacy",
-    why: "Privacy rules decide whether customer data may be collected, kept, or reused." },
-  { re: /single footprint|one box|one appliance|collapse of multiple|consolidated|unified threat/i,
-    cue: "one box / single footprint",
-    why: "They want several security jobs on one device, not three separate tools." },
-  { re: /layer[- ]?7|application layer|application-aware|application visibility/i,
-    cue: "Layer-7 / application layer",
-    why: "A port filter only sees numbers. Layer-7 means the tool must see which application is talking." },
-  { re: /multiple VPNs|security contexts|virtual systems|separate contexts/i,
-    cue: "multiple VPNs / separate contexts",
-    why: "One device, several isolated tunnels or policy worlds." },
-  { re: /least privilege|need[- ]to[- ]know/i,
-    cue: "least privilege",
-    why: "Give only the access the job needs, then stop." },
-  { re: /zero trust|always verify|assume breach/i,
-    cue: "zero trust",
-    why: "Do not trust the path. Check user, device, and request each time." },
-  { re: /at rest|volume encrypt/i,
-    cue: "at rest",
-    why: "The data is sitting still. Encrypt the store, not the wire." },
-  { re: /in transit|data in motion/i,
-    cue: "in transit",
-    why: "The data is moving. Protect the path." },
-  { re: /\bRTO\b|recovery time/i,
-    cue: "RTO",
-    why: "How fast the service must be back. Time, not data." },
-  { re: /\bRPO\b|recovery point/i,
-    cue: "RPO",
-    why: "How much data you can afford to lose. Point-in-time, not speed." },
-  { re: /tabletop/i,
-    cue: "tabletop",
-    why: "Talk through the plan. Nobody takes production down." },
-  { re: /walk[- ]through/i,
-    cue: "walk-through",
-    why: "People review the steps. Still not a live failover." },
-  { re: /parallel test/i,
-    cue: "parallel test",
-    why: "Backup site runs beside production. Production stays up." },
-  { re: /full (?:interruption|failover) test|cutover/i,
-    cue: "full interruption",
-    why: "Production is taken down on purpose to prove the swap." },
-  { re: /\bSIEM\b/,
-    cue: "SIEM",
-    why: "Collects and correlates logs. Library, not lock." },
-  { re: /\bSOAR\b/,
-    cue: "SOAR",
-    why: "Playbooks that act on alerts without a click every time." },
-  { re: /\bEDR\b/,
-    cue: "EDR",
-    why: "Watch and respond on the laptop or server itself." },
-  { re: /\bSASE\b/,
-    cue: "SASE",
-    why: "Cloud-delivered access plus inspection for users anywhere." },
-  { re: /\bCASB\b/,
-    cue: "CASB",
-    why: "Control point between users and cloud apps." },
-  { re: /immutable|\bWORM\b|write once/i,
-    cue: "immutable / WORM",
-    why: "Once written, nobody can quietly edit the record." },
-  { re: /compensat(?:ing|ory) control/i,
-    cue: "compensating control",
-    why: "The preferred control will not fit, so you add a different control that covers the same risk." }
+const STOP = new Set(("a an the and or of to for from with without on in into by as is are was be been being that this these those which who whom whose what when where why how would should could may might must can not no nor if then than so such its their his her your our any all each both few more most other some only own same than too very just also will shall about over after before between against during without within across per via using used use than").split(" "));
+
+const PHRASES = [
+  "internal legal team", "legal team", "user consent", "customer data",
+  "prompt injection", "model inversion", "model poisoning", "bug bounty",
+  "next-generation firewall", "layer-7", "application layer", "single footprint",
+  "security contexts", "zero trust", "least privilege", "at rest", "in transit",
+  "recovery time objective", "recovery point objective", "tabletop", "walk-through",
+  "parallel test", "full interruption", "compensating control", "write once",
+  "access control", "threat modeling", "configuration information"
+].sort((a, b) => b.length - a.length);
+
+const JOBS = [
+  { re: /legal team|counsel|attorney|privacy officer|DPO/i, job: "legal / privacy",
+    rule: "Legal decides what the law allows you to do with a person or their data." },
+  { re: /board|auditor|executive|CISO|risk owner|governance/i, job: "risk / governance",
+    rule: "They want a decision, a document, or proof — not a packet capture." },
+  { re: /architect|design|solution that includes/i, job: "architect",
+    rule: "Pick the design that covers every listed requirement with the fewest extra boxes." },
+  { re: /SOC|analyst|detect|alert|incident|hunt/i, job: "operations",
+    rule: "Pick the action or evidence that stops or proves the event." },
+  { re: /engineer|implement|configure|deploy|patch/i, job: "engineering",
+    rule: "Pick the control that actually changes the system." }
 ];
 
 function splitExplain(raw) {
@@ -88,18 +41,78 @@ function splitExplain(raw) {
   return { body: body.join("\n\n"), analogy };
 }
 
-function collectTells(q) {
-  if (Array.isArray(q.tells) && q.tells.length) return q.tells;
-  const hay = (q.stem || "") + "\n" + Object.values(q.options || {}).join("\n") + "\n" + (q.explanation || "");
+function lastAsk(stem) {
+  const t = String(stem || "").replace(/\s+/g, " ").trim();
+  const parts = t.split(/(?<=[.?!])\s+/);
+  const last = parts[parts.length - 1] || t;
+  if (/which of the following|which of these|what should|what is the|who should|who is/i.test(last)) return last;
+  const m = t.match(/(Which of the following[^.?]*[.?]|Which of these[^.?]*[.?]|What should the[^.?]*[.?]|Who should[^.?]*[.?])/i);
+  return (m && m[0]) || last;
+}
+
+function norm(s) {
+  return String(s || "").toLowerCase().replace(/[^a-z0-9+\-/ ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function phrasesIn(text) {
+  const n = norm(text);
   const hits = [];
-  const seen = new Set();
-  TELL_RULES.forEach((rule) => {
-    if (rule.re.test(hay) && !seen.has(rule.cue)) {
-      seen.add(rule.cue);
-      hits.push({ cue: rule.cue, why: rule.why });
-    }
+  PHRASES.forEach((p) => {
+    if (n.indexOf(p) >= 0) hits.push(p);
   });
   return hits;
+}
+
+function tokens(text) {
+  return norm(text).split(" ").filter((w) => w.length > 3 && !STOP.has(w) && !/^\d+$/.test(w));
+}
+
+function correctLetters(q) {
+  return String(q.answer || "").split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function correctText(q) {
+  return correctLetters(q).map((L) => (q.options && q.options[L]) || "").filter(Boolean).join(" ");
+}
+
+function wrongText(q) {
+  const ok = new Set(correctLetters(q));
+  return Object.keys(q.options || {}).filter((L) => !ok.has(L)).map((L) => q.options[L]).join(" ");
+}
+
+function distinctive(q) {
+  const good = correctText(q);
+  const bad = wrongText(q);
+  const goodP = phrasesIn(good);
+  const badP = new Set(phrasesIn(bad));
+  const phraseHits = goodP.filter((p) => !badP.has(p));
+  const badTok = new Set(tokens(bad));
+  const wordHits = tokens(good).filter((w) => !badTok.has(w));
+  const out = [];
+  phraseHits.forEach((p) => { if (out.indexOf(p) < 0) out.push(p); });
+  wordHits.forEach((w) => { if (out.indexOf(w) < 0) out.push(w); });
+  return out.slice(0, 6);
+}
+
+function baitWords(q) {
+  const good = new Set(tokens(correctText(q)).concat(phrasesIn(correctText(q))));
+  const bits = [];
+  const ok = new Set(correctLetters(q));
+  Object.keys(q.options || {}).forEach((L) => {
+    if (ok.has(L)) return;
+    const p = phrasesIn(q.options[L])[0];
+    const t = tokens(q.options[L]).find((w) => !good.has(w));
+    bits.push(p || t || "");
+  });
+  return bits.filter(Boolean).slice(0, 5);
+}
+
+function jobLine(q) {
+  const hay = q.stem || "";
+  for (let i = 0; i < JOBS.length; i++) {
+    if (JOBS[i].re.test(hay)) return JOBS[i];
+  }
+  return null;
 }
 
 function teachPair(q) {
@@ -114,6 +127,31 @@ function teachPair(q) {
   return "";
 }
 
+function teachAll(q) {
+  const crafted = teachPair(q);
+  if (crafted) return crafted;
+  if (q.pbq || !correctText(q)) {
+    return "Read the exhibit and the ask. The right move is the one that matches the job in the stem.";
+  }
+  const ask = lastAsk(q.stem);
+  const keys = distinctive(q);
+  const job = jobLine(q);
+  const bait = baitWords(q);
+  let html = "<p>The question is asking: <i>" + escapeHtml(ask) + "</i></p>";
+  if (job) {
+    html += "<p>That is a <b>" + escapeHtml(job.job) + "</b> ask. " + escapeHtml(job.rule) + "</p>";
+  }
+  if (keys.length) {
+    html += "<p>The correct choice is the one that says <b>" + keys.map(escapeHtml).join("</b>, <b>") + "</b>. Those words fit the ask. The other choices do not.</p>";
+  } else {
+    html += "<p>Match the correct option to the ask. A wrong option usually fits one security-sounding word and misses the job the stem named.</p>";
+  }
+  if (bait.length) {
+    html += "<p>Bait words in the wrong answers: <b>" + bait.map(escapeHtml).join("</b>, <b>") + "</b>. They sound like security work. They do not answer this ask.</p>";
+  }
+  return html;
+}
+
 function pictureIt(q, parsed) {
   if (ANALOGY_FIX[q.id]) return ANALOGY_FIX[q.id];
   if (q.analogy) return q.analogy;
@@ -126,22 +164,12 @@ function pictureIt(q, parsed) {
 
 function explainHtml(q) {
   const parsed = splitExplain(q.explanation || "");
-  const pair = teachPair(q);
-  const tells = pair ? [] : collectTells(q);
   const pic = pictureIt(q, parsed);
   let html = "";
   if (parsed.body) {
     html += `<div class="exp-body">${escapeHtml(parsed.body).replace(/\n/g, "<br>")}</div>`;
   }
-  html += `<div class="look-for"><div class="kicker">How the words pick the answer</div>`;
-  if (pair) {
-    html += `<p>${pair}</p>`;
-  } else if (tells.length) {
-    html += "<ul>" + tells.map((t) => `<li><b>${escapeHtml(t.cue)}</b> — ${escapeHtml(t.why)}</li>`).join("") + "</ul>";
-  } else {
-    html += "<p>Find the job in the stem (legal, architect, engineer, SOC). Then pick the answer whose words belong to that job. Extra security jargon in the other options is bait.</p>";
-  }
-  html += "</div>";
+  html += `<div class="look-for"><div class="kicker">How the words pick the answer</div>${teachAll(q)}</div>`;
   if (pic) {
     html += `<div class="picture-it"><div class="kicker">Picture it</div><p>${escapeHtml(pic)}</p></div>`;
   }
