@@ -1,9 +1,15 @@
-/* Stem tells + simpler picture-it. Does not change the bank. */
 const ANALOGY_FIX = {
-  277: "A basic firewall only asks what port you used. An NGFW sits in the same place, also looks at which app is talking, and can run several separate VPN setups on one box."
+  277: "A basic firewall only asks what port you used. An NGFW sits in the same place, also looks at which app is talking, and can run several separate VPN setups on one box.",
+  414: "Security can patch a chatbot. Legal has to approve using a customer's data to train it."
 };
 
 const TELL_RULES = [
+  { re: /internal legal|legal team|counsel|office of general counsel/i,
+    cue: "internal legal team",
+    why: "The question is asking who owns law and privacy, not which bug is the scariest. Pick the issue counsel must bless." },
+  { re: /consent|lawful basis|privacy (?:team|office|issue)|GDPR|CCPA|customer data/i,
+    cue: "consent / customer data / privacy",
+    why: "Using someone's data to train a model is a legal question first. Engineering bugs stay with security." },
   { re: /single footprint|one box|one appliance|collapse of multiple|consolidated|unified threat/i,
     cue: "one box / single footprint",
     why: "They want several security jobs on one device, not three separate tools." },
@@ -119,7 +125,7 @@ function pictureIt(q, parsed) {
   const a = parsed.analogy || "";
   if (!a) return "";
   if (a.length > 160) return "";
-  if (/nightclub|shrink-wrap|spell-check|photocopies the entire|go-bag|bouncer who only checks IDs for people who look/i.test(a)) return "";
+  if (/nightclub|shrink-wrap|spell-check|photocopies the entire|go-bag|bouncer who only checks IDs for people who look|private letters/i.test(a)) return "";
   return a;
 }
 
@@ -147,7 +153,6 @@ function explainHtml(q) {
 (function wrapCoach() {
   const wait = () => {
     if (typeof revealPanel !== "function") { setTimeout(wait, 30); return; }
-    const _rev = revealPanel;
     revealPanel = function (q, header, trail) {
       $("explain").classList.remove("hidden");
       $("explain").innerHTML = `${header}<div class="exp-stack">${explainHtml(q)}</div>${trail || ""}`;
