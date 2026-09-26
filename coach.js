@@ -5,9 +5,9 @@ const ANALOGY_FIX = {
 };
 
 const TEACH_FIX = {
+  277: "The stem wants several security functions in <b>one box</b>, several VPNs with separate contexts, and <b>Layer-7</b> inspection. A NAT box only rewrites addresses. A reverse proxy fronts one app. NIDS mostly watches. An NGFW is the one product that does all three.",
   407: "The stem says the box is built from parts sourced around the world, and customers must be reassured the extra risk is small. A customer cannot inspect an internal qualitative analysis, a BIA, or a one-off third-party study. They can inspect a <b>transparent supply-chain risk program that tests parts and publishes that work</b>. Transparent + supply chain + testing is what a buyer can actually see.",
-  414: "The stem says <b>legal team</b>. Legal works in law. In law you do not take something from a person unless they gave <b>consent</b>. That is why the answer with consent is the one counsel handles. Prompt injection, DoS, and poisoning are bugs. Security patches bugs. Legal does not.",
-  277: "The stem wants several security functions in <b>one box</b>, several VPNs with separate contexts, and <b>Layer-7</b> inspection. A NAT box only rewrites addresses. A reverse proxy fronts one app. NIDS mostly watches. An NGFW is the one product that does all three."
+  414: "The stem says <b>legal team</b>. Legal works in law. In law you do not take something from a person unless they gave <b>consent</b>. That is why the answer with consent is the one counsel handles. Prompt injection, DoS, and poisoning are bugs. Security patches bugs. Legal does not."
 };
 
 function splitExplain(raw) {
@@ -24,7 +24,7 @@ function splitExplain(raw) {
 }
 
 function sentences(text) {
-  return String(text || "").replace(/\s+/g, " ").trim().split(/(?<=\.)\s+/).filter((s) => s && s.length > 8);
+  return String(text || "").replace(/\s+/g, " ").trim().split(/(?<=\\.)\\s+/).filter((s) => s && s.length > 8);
 }
 
 function lastAsk(stem) {
@@ -40,14 +40,15 @@ function setup(stem) {
   const ask = lastAsk(t);
   let head = t;
   if (ask && t.indexOf(ask) >= 0) head = t.slice(0, t.indexOf(ask)).trim();
-  const sents = sentences(head);
-  return sents.slice(0, 2).join(" ");
+  return sentences(head).slice(0, 2).join(" ");
 }
 
 function correctLetters(q) {
   return String(q.answer || "").split(",").map((s) => s.trim()).filter(Boolean);
 }
-function optionOf(q, L) { return (q.options && q.options[L]) || ""; }
+function optionOf(q, L) {
+  return (q.options && q.options[L]) || "";
+}
 function correctText(q) {
   return correctLetters(q).map((L) => optionOf(q, L)).filter(Boolean).join("; ");
 }
@@ -73,7 +74,7 @@ function dismissWrong(text) {
   if (/bug bounty/i.test(t)) return "that is a vuln-intake process, not privacy permission.";
   if (/NAT gateway/i.test(t)) return "that only rewrites addresses.";
   if (/reverse proxy/i.test(t)) return "that fronts one application.";
-  if (/NIDS|IDS/i.test(t)) return "that mostly watches. It does not enforce Layer-7 policy on several VPN contexts.";
+  if (/NIDS|\bIDS\b/i.test(t)) return "that mostly watches. It does not enforce Layer-7 policy on several VPN contexts.";
   return "that answers a different job than the one in the stem.";
 }
 
@@ -90,14 +91,53 @@ function teachAll(q) {
   const why = sentences(splitExplain(q.explanation).body).slice(0, 2).join(" ");
   const ok = new Set(correctLetters(q));
   const wrong = Object.keys(q.options || {}).filter((L) => !ok.has(L));
-
   let html = "";
   if (scene) html += "<p>" + escapeHtml(scene) + "</p>";
   html += "<p>The ask is: <i>" + escapeHtml(ask) + "</i> That is for <b>" + escapeHtml(who.who) + "</b> — they must be able to <b>" + escapeHtml(who.verb) + "</b>.</p>";
   html += "<p>Choice <b>" + escapeHtml(letters) + "</b> says: <b>" + escapeHtml(pick) + "</b>.</p>";
   if (why) html += "<p>" + escapeHtml(why) + "</p>";
-  html += "<p>Connect them: the stem named a job. This choice is the thing that job can actually use. The words in this choice are not decoration — they are the work product " + escapeHtml(who.who) + " can " + escapeHtml(who.verb) + ".</p>";
+  html += "<p>Connect them: the stem named a job. This choice is the work product " + escapeHtml(who.who) + " can " + escapeHtml(who.verb) + ".</p>";
   if (wrong.length) {
     html += "<p>Why the others miss:</p><ul>";
     wrong.forEach((L) => {
-      html += "<li><b>" + escapeHtml(L) + 
+      html += "<li><b>" + escapeHtml(L) + ".</b> " + escapeHtml(optionOf(q, L)) + " — " + escapeHtml(dismissWrong(optionOf(q, L))) + "</li>";
+    });
+    html += "</ul>";
+  }
+  return html;
+}
+
+function pictureIt(q, parsed) {
+  if (ANALOGY_FIX[q.id]) return ANALOGY_FIX[q.id];
+  if (q.analogy) return q.analogy;
+  const a = parsed.analogy || "";
+  if (!a) return "";
+  if (a.length > 140) return "";
+  if (/nightclub|shrink-wrap|spell-check|photocopies|go-bag|bouncer|private letters|baby-crib|baby crib/i.test(a)) return "";
+  return a;
+}
+
+function explainHtml(q) {
+  const parsed = splitExplain(q.explanation || "");
+  const pic = pictureIt(q, parsed);
+  let html = "";
+  if (parsed.body) html += "<div class=\"exp-body\">" + escapeHtml(parsed.body).replace(/\n/g, "<br>") + "</div>";
+  html += "<div class=\"look-for\"><div class=\"kicker\">How the words pick the answer</div>" + teachAll(q) + "</div>";
+  if (pic) html += "<div class=\"picture-it\"><div class=\"kicker\">Picture it</div><p>" + escapeHtml(pic) + "</p></div>";
+  return html;
+}
+
+(function wrapCoach() {
+  const wait = () => {
+    if (typeof revealPanel !== "function") { setTimeout(wait, 30); return; }
+    revealPanel = function (q, header, trail) {
+      $("explain").classList.remove("hidden");
+      $("explain").innerHTML = header + "<div class=\"exp-stack\">" + explainHtml(q) + "</div>" + (trail || "");
+      $("btn-submit").classList.add("hidden");
+      $("btn-next").classList.remove("hidden");
+      renderGlossary(findAcronyms(questionText(q) + " \n " + (q.explanation || "")));
+      $("btn-next").textContent = state.idx + 1 >= state.queue.length ? "See results" : "Next";
+    };
+  };
+  wait();
+})();
