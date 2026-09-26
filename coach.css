@@ -1,0 +1,13 @@
+.exp-stack { margin-top: 10px; }
+.exp-body { margin-bottom: 10px; }
+.look-for, .picture-it {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #ead7a0;
+}
+.look-for ul {
+  margin: 6px 0 0;
+  padding-left: 1.15em;
+}
+.look-for li { margin: 0 0 6px; }
+.picture-it p { margin: 6px 0 0; }
